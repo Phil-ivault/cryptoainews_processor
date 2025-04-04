@@ -96,7 +96,7 @@ IP_RATE_LIMIT=25                                # Max requests allowed per minut
 ### Local Setup Instructions
 
 1.  **Clone the repository:** `git clone <your-repo-url>`
-2.  **Navigate to the directory:** `cd ...`
+2.  **Navigate to the directory:** `cd cryptoainews_processor`
 3.  **Install dependencies:** `npm install`
 4.  **Create `.env` file:** `cp .env.example .env`
 5.  **Populate `.env` file:** Edit the `.env` file and fill in your actual credentials and desired settings.
