@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 
-**Description:** An AI-powered news aggregator that fetches crypto-related news from a Telegram channel, processes it using AI (via OpenRouter), caches data using Redis, and displays it on a simple web frontend.
+**Description:** An AI-powered news processor that fetches crypto-related news from a Telegram channel, processes it using AI (via OpenRouter), caches data using Redis, and displays it on a simple web frontend.
 
 ### Features
 
