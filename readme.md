@@ -1,4 +1,4 @@
-## CryptoAINews Aggregator
+## CryptoAINews Processor
 
 **Version:** 1.0
 
