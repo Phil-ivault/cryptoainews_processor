@@ -194,7 +194,7 @@ async function fetchLatestMessages() {
     // Get messages newer than last processed ID
     const messages = await client.getMessages(TELEGRAM_CHANNEL, {
       limit: MESSAGE_FETCH_LIMIT,
-      offsetId: lastMaxId,
+      offsetId: lastMaxId + 1,
       addOffset: 0,
       reverse: false
     });
@@ -207,7 +207,7 @@ async function fetchLatestMessages() {
     // SYNC filter (no await in filter)
     const unprocessed = messages.filter(msg =>
       !processedIds.has(msg.id.toString()) &&
-      msg.id > lastMaxId
+      msg.id >= lastMaxId + 1
     );
 
     // Handle retries
@@ -298,7 +298,11 @@ async function executePoll() {
 
   isPollingActive = true;
   try {
-    console.log('[POLL] Checking messages...');
+    // Get current ID BEFORE fetching
+    const currentLastMaxId = parseInt(await redisClient.get('lastMaxId'));
+
+    // Enhanced log
+    console.log(`[POLL] Checking for messages newer than ID ${currentLastMaxId}...`);
     const messages = await fetchLatestMessages();
     const validMessages = messages.filter(msg => msg?.id);
 
@@ -308,15 +312,33 @@ async function executePoll() {
     }
 
     let successCount = 0;
+    let highestProcessedId = 0; // Track the highest successfully processed ID
     const failedIds = [];
 
+    // Process messages in descending order (newest first)
     for (const message of validMessages.sort((a, b) => b.id - a.id)) {
       try {
         const success = await processAndStoreMessage(message);
-        if (success) successCount++;
-        else failedIds.push(message.id);
+        if (success) {
+          successCount++;
+          // Update the highest processed ID
+          if (message.id > highestProcessedId) {
+            highestProcessedId = message.id;
+          }
+        } else {
+          failedIds.push(message.id);
+        }
       } catch (error) {
         console.error(`[Poll Error] ${message?.id || 'unknown'}:`, error);
+      }
+    }
+
+    // Update lastMaxId ONLY if new messages were processed
+    if (highestProcessedId > 0) {
+      const currentLastMaxId = parseInt(await redisClient.get('lastMaxId') || 0);
+      if (highestProcessedId > currentLastMaxId) {
+        await redisClient.set('lastMaxId', highestProcessedId);
+        console.log(`🆕 Updated lastMaxId to ${highestProcessedId}`);
       }
     }
 
