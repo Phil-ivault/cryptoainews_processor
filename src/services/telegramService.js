@@ -16,7 +16,7 @@ const MAX_ARTICLES = parseInt(process.env.MAX_ARTICLES) || 25;
 const MESSAGE_FETCH_LIMIT = parseInt(process.env.MESSAGE_FETCH_LIMIT) || 25;
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL) || 120000;
 const PROCESSED_SET = 'processed_ids';
-const LOCK_TTL = parseInt(process.env.PROCESSING_LOCK_TTL) || 60; // seconds
+const LOCK_TTL = parseInt(process.env.PROCESSING_LOCK_TTL) || 60;
 let isPollingActive = false;
 
 // Environment validation
@@ -79,6 +79,11 @@ async function processAndStoreMessage(message) {
       return true;
     }
 
+    const currentMaxId = await redisClient.get('lastMaxId');
+    if (message.id <= currentMaxId) {
+      console.log(`⏩ Skipping ${message.id} - older than current max ID`);
+      return true;
+    }
     // 2. Check processed set
     const isProcessed = await redisClient.sIsMember(PROCESSED_SET, msgId.toString());
     if (isProcessed) {
@@ -183,56 +188,56 @@ function isValidHttpUrl(url) {
   return url.protocol === 'http:' || url.protocol === 'https:';
 }
 
-// Message fetching
+// MODIFIED MESSAGE FETCHING LOGIC
 async function fetchLatestMessages() {
   try {
     const client = await getAuthorizedClient();
 
-    // Get lastMaxId FIRST
+    // Get current state
     const lastMaxId = parseInt(await redisClient.get('lastMaxId') || 0);
+    const currentMaxId = await getCurrentTelegramMaxId(client);
 
-    // Get messages newer than last processed ID
+    // Fetch new messages
     const messages = await client.getMessages(TELEGRAM_CHANNEL, {
       limit: MESSAGE_FETCH_LIMIT,
-      offsetId: lastMaxId + 1,
+      offsetId: Math.max(lastMaxId, currentMaxId) + 1,
       addOffset: 0,
       reverse: false
     });
 
-    // Retrieve processed IDs
-    const processedIds = new Set(
-      await redisClient.sMembers(PROCESSED_SET)
-    );
-
-    // SYNC filter (no await in filter)
+    // Filter processing
+    const processedIds = new Set(await redisClient.sMembers(PROCESSED_SET));
     const unprocessed = messages.filter(msg =>
       !processedIds.has(msg.id.toString()) &&
-      msg.id >= lastMaxId + 1
+      msg.id > lastMaxId
     );
 
-    // Handle retries
-    const failedKeys = await redisClient.keys('failed:*');
-    const failedIds = failedKeys.map(k => parseInt(k.split(':')[1]));
+    // Handle retries with ID validation
+    const failedIds = (await redisClient.keys('failed:*'))
+      .map(k => parseInt(k.split(':')[1]))
+      .filter(id => id > lastMaxId);
 
     const failedMessages = await Promise.all(
-      failedIds.map(async id => {
-        try {
-          return await client.getMessages(TELEGRAM_CHANNEL, { ids: id });
-        } catch (error) {
-          console.log(`[Retry Failed] Could not fetch message ${id}:`, error);
-          return null;
-        }
-      })
+      failedIds.map(id => client.getMessages(TELEGRAM_CHANNEL, { ids: id }))
     );
 
     return [
       ...unprocessed,
-      ...failedMessages.flat().filter(msg => msg?.id)
+      ...failedMessages.flat().filter(msg => msg?.id && msg.id > lastMaxId)
     ];
   } catch (error) {
     console.error('📩 Fetch Failed:', error);
     return [];
   }
+}
+
+// NEW HELPER FUNCTION
+async function getCurrentTelegramMaxId(client) {
+  const [latestMessage] = await client.getMessages(TELEGRAM_CHANNEL, {
+    limit: 1,
+    reverse: true
+  });
+  return latestMessage?.id || 0;
 }
 
 // Initialization system
@@ -298,11 +303,14 @@ async function executePoll() {
 
   isPollingActive = true;
   try {
-    // Get current ID BEFORE fetching
-    const currentLastMaxId = parseInt(await redisClient.get('lastMaxId'));
+    // Get actual Telegram max ID first
+    const client = await getAuthorizedClient();
+    const telegramMaxId = await getCurrentTelegramMaxId(client);
+    const redisMaxId = parseInt(await redisClient.get('lastMaxId') || 0);
+    const currentLastMaxId = Math.max(telegramMaxId, redisMaxId);
 
-    // Enhanced log
-    console.log(`[POLL] Checking for messages newer than ID ${currentLastMaxId}...`);
+    console.log(`[POLL] Checking messages from ID ${currentLastMaxId + 1}+`);
+
     const messages = await fetchLatestMessages();
     const validMessages = messages.filter(msg => msg?.id);
 
@@ -312,19 +320,20 @@ async function executePoll() {
     }
 
     let successCount = 0;
-    let highestProcessedId = 0; // Track the highest successfully processed ID
+    let highestProcessedId = 0;
     const failedIds = [];
 
-    // Process messages in descending order (newest first)
     for (const message of validMessages.sort((a, b) => b.id - a.id)) {
       try {
+        if (message.id <= currentLastMaxId) {
+          console.log(`⏩ Skipping ${message.id} - below current threshold`);
+          continue;
+        }
+
         const success = await processAndStoreMessage(message);
         if (success) {
           successCount++;
-          // Update the highest processed ID
-          if (message.id > highestProcessedId) {
-            highestProcessedId = message.id;
-          }
+          highestProcessedId = Math.max(highestProcessedId, message.id);
         } else {
           failedIds.push(message.id);
         }
@@ -333,13 +342,9 @@ async function executePoll() {
       }
     }
 
-    // Update lastMaxId ONLY if new messages were processed
     if (highestProcessedId > 0) {
-      const currentLastMaxId = parseInt(await redisClient.get('lastMaxId') || 0);
-      if (highestProcessedId > currentLastMaxId) {
-        await redisClient.set('lastMaxId', highestProcessedId);
-        console.log(`🆕 Updated lastMaxId to ${highestProcessedId}`);
-      }
+      await redisClient.set('lastMaxId', highestProcessedId);
+      console.log(`🆕 Updated lastMaxId to ${highestProcessedId}`);
     }
 
     console.log(`[POLL] Processed ${successCount}/${validMessages.length} messages`);
