@@ -117,20 +117,30 @@ Headline: [Your headline here]
         console.log(`[Raw Response] ${model} (${Date.now() - startTime}ms):
           ${getContentPreview(response)}`);
 
-        // Headline extraction
-        const headlineMatch = response.match(/^Headline:\s*(.+)$/mi);
+        // Enhanced headline extraction
+        const headlineMatch = response.match(
+          /^(?:#+\s*)?(?:headline|title|header):?\s*([^\n]+)/mi
+        );
+
         if (!headlineMatch) {
-          console.log(`[Rejected] ${model} - Missing headline (Key: ${apiKey.slice(0, 5)}...)`);
+          console.log(`[Rejected] ${model} - Missing headline`);
           continue;
         }
 
+        // Clean headline
         const headline = headlineMatch[1]
-          .replace(/[*_~`"']/g, '')
+          .replace(/^[\s*_\-]+|[\s*_\-]+$/g, '') // Trim surrounding marks
           .substring(0, 100)
           .trim();
 
-        // Content extraction
-        const content = response.replace(/^.*Headline:\s*/mi, '').trim();
+        // Enhanced content cleaning
+        const content = response
+          .replace(new RegExp(`^.*${headlineMatch[1]}.*$`, 'mi'), '') // Remove headline line
+          .replace(/^(?:#+\s*)?(?:headline|title|header):?\s*.+$/mi, '') // Remove any header line
+          .replace(/(\n\s*){3,}/g, '\n\n') // Normalize newlines
+          .trim();
+
+        // Sanitize AFTER content processing
         const sanitized = sanitizeContent(content);
 
         console.log(`[Parsed] ${model}:
@@ -155,7 +165,7 @@ Headline: [Your headline here]
           continue;
         }
 
-        return { headline, content };
+        return { headline, content: sanitized };
 
       } catch (error) {
         console.log(`[Model Error] ${model} (Key: ${apiKey.slice(0, 5)}...): ${error.message}`);
