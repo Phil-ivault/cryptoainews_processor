@@ -356,4 +356,3 @@ If `WEBHOOK_TARGET_URL` is configured in your environment variables, the applica
 ## License
 
 MIT License. See the `LICENSE` file.
-```
