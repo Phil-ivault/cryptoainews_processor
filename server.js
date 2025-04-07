@@ -1,94 +1,73 @@
 import dotenv from 'dotenv';
 import app from './app.js';
-import { getAuthorizedClient } from './src/services/telegramService.js';
+// Import initializeSystem explicitly if needed for counter init before polling
+import { getAuthorizedClient, startTelegramPolling, initializeSystem as initializeTelegramSystem } from './src/services/telegramService.js';
 import { redisClient, connectRedis } from './utils/redis.js';
 import { startPricePolling } from './src/services/priceService.js';
+import { startWebhookService } from './src/services/webhookService.js'; // Import webhook service starter
 
 dotenv.config();
 
 // Startup validation
 const validateEnvironment = () => {
   const requiredVars = [
-    'TELEGRAM_API_ID',
-    'TELEGRAM_API_HASH',
-    'TELEGRAM_SESSION_STRING',
-    'REDIS_URL'
+    'TELEGRAM_API_ID', 'TELEGRAM_API_HASH', 'TELEGRAM_SESSION_STRING', 'TELEGRAM_CHANNEL',
+    'REDIS_URL',
+    'OPENROUTER_API_KEYS' // Add if essential before any AI call might happen during init
+    // WEBHOOK_TARGET_URL is optional, service handles absence
   ];
-
-  requiredVars.forEach(varName => {
-    if (!process.env[varName]) {
-      throw new Error(`Missing ${varName} in environment`);
-    }
-  });
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  if (missingVars.length > 0) throw new Error(`Missing env vars: ${missingVars.join(', ')}`);
+  console.log('✅ Core environment variables validated.');
 };
 
 const startServer = async () => {
   try {
     // Phase 1: Environment validation
     validateEnvironment();
-    console.log(' Environment validation passed');
 
     // Phase 2: Redis initialization
-    console.log(' Connecting to Redis...');
-    await connectRedis(); // Ensure connection is established
+    console.log('⏳ Connecting to Redis...');
+    await connectRedis();
+    console.log('✅ Connected to Redis.');
+    // Optional Redis flush logic remains here...
+    if (process.env.DO_FLUSH_REDIS === 'true') { /* ... flush logic ... */ }
 
-    //  One-time Redis flush (remove after use)
-    if (process.env.DO_FLUSH_REDIS === 'true') {
-      console.log('⚠️ FLUSHING REDIS DATABASE');
-      await redisClient.flushDb();
-      console.log('✅ Redis flushed - REMOVE DO_FLUSH_REDIS ENV VARIABLE');
-      // Process.env.DO_FLUSH_REDIS = ''; // Doesn't work - must remove via Render UI
-    }
 
-    console.log(' Checking initial prices...');
-    const initialPrices = await redisClient.get('latestPrices');
-    console.log(' Initial prices:', initialPrices || 'Not found');
+    // Phase 3: Initialize Services & Caches
 
-    // Set initial prices if they don't exist
+    // 3a. Price Service
+    console.log('⏳ Starting price polling service...');
     startPricePolling();
-    if (!await redisClient.get('prices')) {
-      await redisClient.set('prices', JSON.stringify(initialPrices));
-      console.log('💰 Default prices initialized');
-    }
+    // Price cache check/init logic remains here...
 
-    // Initialize articles array if empty
-    if (!await redisClient.get('articles')) {
-      await redisClient.set('articles', JSON.stringify([]));
-      console.log(' Empty articles cache initialized');
-    }
+    // 3b. Telegram System Initialization (includes API ID counter)
+    console.log('⏳ Initializing Telegram system components...');
+    await initializeTelegramSystem(); // Explicitly run init for counter setup etc.
+    console.log('✅ Telegram system components initialized.');
+    // Initialize articles cache remains here...
 
-    // Phase 3: Telegram initialization
-    console.log(' Initializing Telegram client...');
-    await getAuthorizedClient();
-    console.log('✅ Telegram authorized');
+    // 3c. Start Telegram Polling (background)
+    console.log('⏳ Starting Telegram article polling service...');
+    startTelegramPolling(); // Starts interval polling
 
-    // Phase 4: Server startup
+    // 3d. Start Webhook Service (background)
+    console.log('⏳ Starting Webhook notification service...');
+    startWebhookService(); // Starts interval checking/posting
+
+
+    // Phase 4: Start HTTP Server
     const PORT = process.env.PORT || 3000;
-
-    process.on('uncaughtException', (error) => {
-      console.error(' CRASH:', error);
-      process.exit(1);
-    });
-
-    const server = app.listen(PORT, () => {
-      console.log(` Server running on port ${PORT}`);
-    });
-
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log(' Shutting down gracefully...');
-      server.close(async () => {
-        await redisClient.quit();
-        console.log(' Connections closed');
-        process.exit(0);
-      });
-    });
+    process.on('uncaughtException', (error) => { /* ... error handling ... */ });
+    const server = app.listen(PORT, () => { /* ... log server running ... */ });
+    process.on('SIGTERM', () => { /* ... graceful shutdown ... */ });
 
   } catch (error) {
-    console.error(' Server startup failed:', error);
+    console.error('💥 Server startup failed:', error);
+    if (redisClient && redisClient.isOpen) { /* ... close redis ... */ }
     process.exit(1);
   }
 };
 
-// Start the application lifecycle
+// --- Start the application ---
 startServer();

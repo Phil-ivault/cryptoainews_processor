@@ -1,13 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Check only for the specific flag this script cares about
 if (process.env.DO_FLUSH_REDIS === 'true') {
-    console.warn('🚨 DO_FLUSH_REDIS is enabled - Redis will be wiped on next deploy');
+    console.warn('🚨 PRESTART WARNING: DO_FLUSH_REDIS is enabled - Redis will be wiped on next deploy/start.');
 }
 
-const required = ['OPENROUTER_API_KEYS', 'TELEGRAM_API_ID', 'TELEGRAM_API_HASH'];
-required.forEach(varName => {
-    if (!process.env[varName]) {
-        throw new Error(`Missing ${varName} in .env file`);
-    }
-});
+// No other validation needed here, server.js handles required vars for startup.
+console.log("ℹ️ Prestart checks complete.");

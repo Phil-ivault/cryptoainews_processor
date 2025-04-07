@@ -81,7 +81,7 @@ async function pricePollingCycle() {
     }
 }
 
-export function startPricePolling(interval = 60000) {
+export function startPricePolling(interval = 120000) {
     // Initialize first before starting interval
     initializePrices().then(() => {
         setInterval(pricePollingCycle, interval);

@@ -4,32 +4,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoAINews News</title>
+    <title>Crypto AI News</title>
     <link rel="stylesheet" href="/styles/main.css">
 </head>
 
 <body>
+    <svg width="0" height="0" style="position:absolute">
+        <defs>
+            <symbol id="icon-eye" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M12 5C5.648 5 1 12 1 12s4.648 7 11 7 11-7 11-7-4.648-7-11-7zm0 12c-2.841 0-5-2.156-5-5 0-2.841 2.159-5 5-5 2.844 0 5 2.156 5 5 0 2.844-2.156 5-5 5zm0-8c-1.659 0-3 1.341-3 3s1.341 3 3 3 3-1.341 3-3-1.341-3-3-3z" />
+            </symbol>
+        </defs>
+    </svg>
+
     <header class="header">
-        <div class="logo-container">
-            <div class="logo">CryptoAINews</div>
-            <div class="price-container" id="priceContainer">
+        <div class="header-content">
+            <div class="logo">Crypto AI News</div>
+            <div class="price-container" id="priceContainer" aria-label="Cryptocurrency Prices">
                 <div class="price-scroller">
-                    <!-- Prices injected here -->
+                    <div class="price-loading">Loading prices...</div>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="grid-container" id="articleGrid">
+    <main class="grid-container" id="articleGrid" aria-live="polite">
         <div class="loading">Loading articles...</div>
     </main>
 
-    <div class="modal" id="articleModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" id="articleModal" role="dialog" aria-modal="true" aria-hidden="true"
+        aria-labelledby="modalTitle">
         <div class="modal-content" role="document">
-            <button class="close-btn" aria-label="Close modal">&times;</button>
-            <h2 class="modal-title"></h2>
-            <p class="modal-body"></p>
-            <a class="modal-link" target="_blank" rel="noopener noreferrer">Check out the source</a>
+            <button class="close-btn" aria-label="Close article modal">&times;</button>
+            <h2 class="modal-title" id="modalTitle">Article Title</h2>
+            <div class="modal-body-container">
+                <p class="modal-body">Article content will load here.</p>
+            </div>
+            <a class="modal-link" href="#" target="_blank" rel="noopener noreferrer">Check out the source</a>
         </div>
     </div>
 

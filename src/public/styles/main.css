@@ -1,7 +1,17 @@
 :root {
     --primary-color: #2962ff;
+    /* Example Blue */
+    --secondary-color: #f4f7f9;
+    /* Light background */
+    --text-color: #333;
+    --muted-color: #666;
+    --border-color: #e0e0e0;
     --spacing-unit: 1rem;
     --max-width: 1200px;
+    --header-height: 60px;
+    /* Approximate height for main margin */
+    --price-bar-height: 30px;
+    /* Approximate height for main margin */
 }
 
 * {
@@ -10,82 +20,129 @@
     padding: 0;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     line-height: 1.6;
-    background: white;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    padding-top: calc(var(--header-height) + var(--price-bar-height) + 1rem);
+    /* Space for fixed header */
 }
 
 /* ================== HEADER ================== */
 .header {
     position: fixed;
     top: 0;
+    left: 0;
     width: 100%;
     background: white;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     z-index: 1000;
-    padding: 1rem var(--spacing-unit);
+    padding: 0 var(--spacing-unit);
+    /* Padding handled by inner container */
 }
 
-.logo-container {
+.header-content {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0.75rem 0;
+    /* Vertical padding */
 }
 
 .logo {
     font-weight: 700;
     font-size: 1.5rem;
     color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    /* Space below logo */
 }
 
 .price-container {
     width: 100%;
     overflow-x: auto;
     scrollbar-width: thin;
+    /* Firefox */
+    scrollbar-color: var(--primary-color) #eee;
+    /* Firefox */
     -ms-overflow-style: none;
-    scroll-behavior: smooth;
+    /* IE/Edge */
+    cursor: grab;
+    /* Indicate draggable */
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.5rem;
+}
+
+.price-container:active {
+    cursor: grabbing;
 }
 
 .price-container::-webkit-scrollbar {
-    height: 3px;
+    height: 4px;
+}
+
+.price-container::-webkit-scrollbar-track {
+    background: #eee;
 }
 
 .price-container::-webkit-scrollbar-thumb {
     background: var(--primary-color);
-    border-radius: 3px;
+    border-radius: 2px;
 }
 
 .price-scroller {
     display: inline-flex;
-    gap: 2rem;
+    gap: 1.5rem;
+    /* Adjusted gap */
     padding: 0.25rem 0;
-    font-size: 0.9rem;
-    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    /* Slightly smaller */
+    font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
+    /* Monospace fonts */
+    white-space: nowrap;
+    /* Ensure items stay inline */
 }
 
 .price-item {
-    white-space: nowrap;
-    display: inline-flex;
+    /* display: inline-flex; */
+    /* Redundant due to parent flex */
     align-items: center;
     gap: 0.5rem;
-    color: #444;
+    color: var(--text-color);
+}
+
+.price-item span {
+    /* If you add spans inside later */
+    color: var(--muted-color);
+}
+
+.price-loading,
+.price-error {
+    color: var(--muted-color);
+    font-style: italic;
+    padding: 0.5rem 0;
 }
 
 .price-error {
     color: #dc3545;
     font-weight: 500;
-    padding: 0.5rem 0;
 }
 
 /* ================== MAIN CONTENT ================== */
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    /* Slightly larger min width */
     gap: var(--spacing-unit);
     max-width: var(--max-width);
-    margin: 7rem auto 2rem;
+    margin: 0 auto 2rem;
+    /* Removed top margin, handled by body padding */
     padding: 0 var(--spacing-unit);
 }
 
@@ -93,13 +150,23 @@ body {
     background: white;
     border-radius: 8px;
     padding: 1.5rem;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    display: flex;
+    /* Use flexbox for layout */
+    flex-direction: column;
+    /* Stack elements vertically */
+    justify-content: space-between;
+    /* Push meta to bottom */
+    min-height: 180px;
+    /* Ensure minimum card height */
 }
 
 .article-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .article-header {
@@ -107,27 +174,51 @@ body {
 }
 
 .article-header h3 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1.3;
-    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+    /* Slightly adjusted */
+    font-weight: 600;
+    /* Semi-bold */
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+    color: var(--text-color);
+    /* Limit headline lines if needed */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-clamp: 3;
+    min-height: calc(1.2rem * 1.4 * 3);
+    /* Reserve space for 3 lines */
 }
 
 .article-meta {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
-    color: #666;
+    font-size: 0.8rem;
+    /* Smaller meta text */
+    color: var(--muted-color);
     gap: 1rem;
+    margin-top: auto;
+    /* Push to bottom if content is short */
+    padding-top: 0.5rem;
+    /* Space above meta */
+    border-top: 1px solid var(--border-color);
+    /* Separator */
 }
 
 .view-icon {
-    vertical-align: middle;
+    vertical-align: -2px;
+    /* Align icon better with text */
     margin-right: 0.3rem;
+    width: 1em;
+    /* Use em for scaling */
+    height: 1em;
 }
 
-.views {
+.views,
+.date {
+    /* Apply common styling */
     display: inline-flex;
     align-items: center;
 }
@@ -142,89 +233,157 @@ body {
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-clamp: 3;
-    color: #444;
+    color: #555;
+    /* Slightly darker preview text */
+    margin-bottom: 1rem;
+    /* Space between preview and meta */
+    font-size: 0.95rem;
 }
 
 /* ================== MODAL ================== */
 .modal {
     display: none;
+    /* Hidden by default */
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    inset: 0;
+    /* Covers entire viewport */
+    background: rgba(0, 0, 0, 0.6);
+    /* Darker overlay */
     z-index: 2000;
     overflow-y: auto;
+    /* Allow scrolling for tall content */
+    padding: 1rem;
+    /* Padding around modal content */
+}
+
+.modal[aria-hidden="false"] {
+    display: block;
+    /* Show when not hidden */
 }
 
 .modal-content {
     position: relative;
     background: white;
-    max-width: 800px;
-    width: 90%;
+    max-width: 750px;
+    /* Slightly adjusted max-width */
+    width: 100%;
+    /* Responsive width */
     margin: 2rem auto;
-    padding: 4rem 2rem 2rem;
+    /* Center vertically (approx) and horizontally */
+    padding: 2rem;
     border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .modal-title {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
+    font-size: 1.6rem;
+    /* Larger title */
+    margin-bottom: 1.5rem;
     line-height: 1.3;
+    padding-right: 40px;
+    /* Space for close button */
+    font-weight: 600;
+}
+
+.modal-body-container {
+    max-height: 60vh;
+    /* Limit height and allow scrolling */
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+    padding-right: 0.5rem;
+    /* Space for scrollbar */
 }
 
 .modal-body {
     white-space: pre-line;
+    /* Preserve line breaks from content */
     overflow-wrap: break-word;
-    padding: 1rem 0 2rem;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 1rem;
-    line-height: 1.6;
+    /* Wrap long words */
+    line-height: 1.7;
+    /* Increased line height for readability */
+    color: var(--text-color);
+    font-size: 1rem;
 }
 
 .modal-link {
-    display: block;
+    display: inline-block;
+    /* Correct display */
     font-weight: 500;
     color: var(--primary-color);
     text-decoration: none;
     transition: opacity 0.2s;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    width: 100%;
 }
 
 .modal-link:hover {
     opacity: 0.8;
+    text-decoration: underline;
 }
 
 .close-btn {
-    position: sticky;
+    position: absolute;
+    /* Position relative to modal-content */
     top: 1rem;
-    z-index: 3000;
-    background: white;
+    /* Distance from top */
+    right: 1rem;
+    /* Distance from right */
+    background: transparent;
     border: none;
-    font-size: 1.8rem;
+    font-size: 2rem;
+    /* Larger close icon */
+    line-height: 1;
+    color: var(--muted-color);
     cursor: pointer;
-    margin-left: auto;
-    display: block;
+    padding: 0.5rem;
+    /* Easier to click */
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 44px;
+    /* Explicit size */
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--text-color);
 }
 
 /* ================== UTILITY ================== */
 .loading,
 .empty,
 .error {
+    grid-column: 1 / -1;
+    /* Span full grid width */
     text-align: center;
-    padding: 2rem;
-    color: #666;
+    padding: 3rem var(--spacing-unit);
+    color: var(--muted-color);
+    font-size: 1.1rem;
 }
+
+.error {
+    color: #dc3545;
+    font-weight: 500;
+}
+
 
 /* ================== MOBILE ================== */
 @media (max-width: 768px) {
-    .grid-container {
-        grid-template-columns: 1fr;
-        margin-top: 6rem;
+    body {
+        padding-top: calc(var(--header-height) + var(--price-bar-height) + 0.5rem);
+    }
+
+    .header-content {
+        padding: 0.5rem 0;
+    }
+
+    .logo {
+        font-size: 1.25rem;
     }
 
     .price-scroller {
@@ -232,22 +391,65 @@ body {
         font-size: 0.8rem;
     }
 
-    .modal-content {
-        width: 95%;
-        margin: 1rem auto;
-        padding: 3.5rem 1rem 1rem;
+    .grid-container {
+        grid-template-columns: 1fr;
+        /* Single column */
+        gap: 0.75rem;
+        padding: 0 0.75rem;
+        /* Reduced padding */
     }
 
-    .close-btn {
-        top: 0.5rem;
-        right: 0.5rem;
+    .article-card {
+        padding: 1rem;
+        min-height: 160px;
     }
 
     .article-header h3 {
         font-size: 1.1rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        min-height: calc(1.1rem * 1.4 * 2);
+    }
+
+    .article-meta {
+        font-size: 0.75rem;
+    }
+
+    .preview {
+        font-size: 0.9rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+
+
+    .modal {
+        padding: 0.5rem;
+    }
+
+    .modal-content {
+        width: 100%;
+        /* Full width */
+        margin: 0.5rem auto;
+        padding: 1.5rem 1rem 1rem;
+        /* Adjusted padding */
     }
 
     .modal-title {
         font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .modal-body-container {
+        max-height: 70vh;
+    }
+
+    /* Allow more height on mobile */
+
+    .close-btn {
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1.5rem;
     }
 }

@@ -1,134 +1,252 @@
 document.addEventListener('DOMContentLoaded', () => {
-  let cachedArticles = [];
+  // Ensure elements exist before proceeding
+  const priceContainer = document.getElementById('priceContainer');
+  const priceScroller = priceContainer?.querySelector('.price-scroller');
+  const articleGrid = document.getElementById('articleGrid');
   const modal = document.getElementById('articleModal');
+  const closeModalBtn = modal?.querySelector('.close-btn');
+
+  if (!priceContainer || !priceScroller || !articleGrid || !modal || !closeModalBtn) {
+    console.error('Essential frontend elements not found. Aborting script.');
+    return;
+  }
+
+  let cachedArticles = [];
+
+  // ================== UTILITY FUNCTIONS ==================
+  function sanitizeHTML(str) {
+    // Basic sanitization: Replace < > & " '
+    const temp = document.createElement('div');
+    temp.textContent = str;
+    return temp.innerHTML;
+  }
+
+  function formatDate(dateString) {
+    try {
+      return new Date(dateString).toLocaleDateString(undefined, { // Use user's locale
+        year: 'numeric', month: 'short', day: 'numeric'
+      });
+    } catch (e) {
+      console.warn("Could not format date:", dateString);
+      return 'Invalid Date';
+    }
+  }
 
   // ================== PRICE TICKER ==================
   async function updatePrices() {
+    if (!priceScroller) return; // Guard clause
+
     try {
       const response = await fetch('/api/cached-prices');
-      if (!response.ok) throw new Error('Price fetch failed');
+      // Check if response is ok (status in the range 200-299)
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      // Check content type
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new TypeError("Received non-JSON response for prices");
+      }
 
       const prices = await response.json();
       const symbols = Object.keys(prices);
 
+      if (symbols.length === 0) {
+        priceScroller.innerHTML = '<div class="price-item">No price data available</div>';
+        return;
+      }
+
+      // Format prices, handle null/undefined values
       const priceElements = symbols.map(symbol => {
-        const price = prices[symbol]?.toFixed(2) || '---';
-        return `<div class="price-item">${symbol}: $${price}</div>`;
+        const priceValue = prices[symbol];
+        const displayPrice = (typeof priceValue === 'number')
+          ? `$${priceValue.toFixed(2)}` // Format number
+          : '---';                     // Placeholder for null/invalid
+        return `<div class="price-item">${sanitizeHTML(symbol)}: ${displayPrice}</div>`;
       });
 
-      document.querySelector('.price-scroller').innerHTML = priceElements.join('');
+      priceScroller.innerHTML = priceElements.join('');
 
     } catch (error) {
-      document.getElementById('priceContainer').innerHTML =
-        '<div class="price-error">Price data unavailable</div>';
+      console.error('Price update failed:', error);
+      // Display error in the price bar
+      priceScroller.innerHTML = '<div class="price-error">Price data unavailable</div>';
     }
   }
 
-  // Horizontal scroll with mouse drag
+  // --- Price Ticker Mouse Drag Scrolling ---
   let isDragging = false;
   let startX;
   let scrollLeft;
-  const container = document.querySelector('.price-container');
+  const scrollContainer = priceContainer; // Use the container for events
 
-  container.addEventListener('mousedown', (e) => {
+  scrollContainer.addEventListener('mousedown', (e) => {
     isDragging = true;
-    startX = e.pageX - container.offsetLeft;
-    scrollLeft = container.scrollLeft;
-    container.style.cursor = 'grabbing';
+    // Use pageX as clientX can be relative to viewport
+    startX = e.pageX - scrollContainer.offsetLeft;
+    scrollLeft = scrollContainer.scrollLeft;
+    scrollContainer.style.cursor = 'grabbing';
+    scrollContainer.style.userSelect = 'none'; // Prevent text selection while dragging
   });
 
-  container.addEventListener('mouseup', () => {
-    isDragging = false;
-    container.style.cursor = 'grab';
-  });
-
-  container.addEventListener('mouseleave', () => {
-    isDragging = false;
-    container.style.cursor = 'grab';
-  });
-
-  container.addEventListener('mousemove', (e) => {
+  const stopDragging = () => {
     if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - container.offsetLeft;
-    const walk = (x - startX) * 2;
-    container.scrollLeft = scrollLeft - walk;
+    isDragging = false;
+    scrollContainer.style.cursor = 'grab';
+    scrollContainer.style.removeProperty('user-select');
+  }
+
+  // Add listeners to window to catch mouseup/leave outside the container
+  window.addEventListener('mouseup', stopDragging);
+  scrollContainer.addEventListener('mouseleave', stopDragging); // Also stop if mouse leaves container
+
+  scrollContainer.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    e.preventDefault(); // Prevent default drag behavior (like image dragging)
+    const x = e.pageX - scrollContainer.offsetLeft;
+    const walk = (x - startX) * 1.5; // Increase scroll speed multiplier if needed
+    scrollContainer.scrollLeft = scrollLeft - walk;
   });
 
   // ================== ARTICLE HANDLING ==================
   async function loadArticles() {
-    const grid = document.getElementById('articleGrid');
-    grid.innerHTML = '<div class="loading">Loading articles...</div>';
+    if (!articleGrid) return; // Guard clause
+
+    articleGrid.innerHTML = '<div class="loading">Loading articles...</div>';
 
     try {
       const response = await fetch('/api/cached-articles');
-      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new TypeError("Received non-JSON response for articles");
+      }
 
       cachedArticles = await response.json();
 
+      if (!Array.isArray(cachedArticles)) {
+        throw new Error("Invalid article data format received from server.");
+      }
+
       if (cachedArticles.length === 0) {
-        grid.innerHTML = '<div class="empty">No articles found</div>';
+        articleGrid.innerHTML = '<div class="empty">No articles found at the moment.</div>';
         return;
       }
 
-      grid.innerHTML = cachedArticles
-        .sort((a, b) => b.id - a.id)
-        .map(article => `
-          <article class="article-card" data-id="${article.id}">
-            <div class="article-header">
-              <h3>${article.headline}</h3>
-              <div class="article-meta">
-                <span class="views">
-                  <svg class="view-icon" viewBox="0 0 24 24" width="14" height="14">
-                    <path fill="currentColor" d="M12 5C5.648 5 1 12 1 12s4.648 7 11 7 11-7 11-7-4.648-7-11-7zm0 12c-2.841 0-5-2.156-5-5 0-2.841 2.159-5 5-5 2.844 0 5 2.156 5 5 0 2.844-2.156 5-5 5zm0-8c-1.659 0-3 1.341-3 3s1.341 3 3 3 3-1.341 3-3-1.341-3-3-3z"/>
-                  </svg>
-                  ${article.views.toLocaleString()}
-                </span>
-                <span class="date">${new Date(article.date).toLocaleDateString()}</span>
-              </div>
-            </div>
-            <p class="preview">${article.article.substring(0, 100)}...</p>
-          </article>
-        `).join('');
+      // Sort articles by ID descending (newest first)
+      cachedArticles.sort((a, b) => b.id - a.id);
 
-      // Event delegation for article clicks
-      grid.addEventListener('click', (event) => {
-        const card = event.target.closest('.article-card');
-        if (card) showArticle(parseInt(card.dataset.id));
-      });
+      // Generate HTML for article cards
+      articleGrid.innerHTML = cachedArticles.map(article => {
+        // Basic validation of article object structure
+        const headline = article.headline || 'Untitled';
+        const articleContent = article.article || '';
+        const articleId = article.id || Date.now(); // Fallback ID
+        const articleDate = article.date ? formatDate(article.date) : 'N/A';
+        const previewText = articleContent.substring(0, 120); // Adjust preview length
+
+        return `
+            <article class="article-card" data-id="${articleId}" tabindex="0" aria-labelledby="article-title-${articleId}">
+              <div class="article-header">
+                <h3 id="article-title-${articleId}">${sanitizeHTML(headline)}</h3>
+                <div class="article-meta">
+                  <span class="date">${articleDate}</span>
+                </div>
+              </div>
+              <p class="preview">${sanitizeHTML(previewText)}${articleContent.length > 120 ? '...' : ''}</p>
+            </article>
+          `;
+      }).join('');
 
     } catch (error) {
       console.error('Article load failed:', error);
-      grid.innerHTML = '<div class="error">Failed to load articles. Check console.</div>';
+      articleGrid.innerHTML = `<div class="error">Failed to load articles. ${error.message}</div>`;
     }
   }
 
   // ================== MODAL SYSTEM ==================
-  function showArticle(articleId) {
+  function showArticleModal(articleId) {
     const article = cachedArticles.find(a => a.id === articleId);
-    if (!article) return;
+    if (!article || !modal) return;
 
-    // Update modal
+    // Update modal content safely
+    modal.querySelector('.modal-title').textContent = article.headline || 'Article Details';
+    modal.querySelector('.modal-body').textContent = article.article || 'Content not available.';
+    const linkElement = modal.querySelector('.modal-link');
+
+    if (article.source) {
+      linkElement.href = article.source;
+      linkElement.style.display = 'inline-block'; // Show link if source exists
+      linkElement.textContent = 'Read source article →';
+    } else {
+      linkElement.style.display = 'none'; // Hide link if no source
+    }
+
+
+    // Show modal and manage accessibility attributes
     modal.style.display = 'block';
     modal.setAttribute('aria-hidden', 'false');
-    modal.querySelector('.modal-title').textContent = article.headline;
-    modal.querySelector('.modal-body').textContent = article.article;
-    const linkElement = modal.querySelector('.modal-link');
-    linkElement.href = article.source;
-    linkElement.textContent = 'Check out the source →';
+    // Focus the close button for accessibility
+    closeModalBtn.focus();
   }
-
-  // Close handlers
-  document.querySelector('.close-btn').addEventListener('click', () => closeModal());
-  modal.addEventListener('click', (e) => e.target === modal && closeModal());
 
   function closeModal() {
+    if (!modal) return;
     modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
+    // Optional: Return focus to the element that opened the modal if tracked
   }
 
-  // ================== INITIAL LOAD ==================
-  updatePrices();
-  loadArticles();
-  setInterval(updatePrices, 15000);
-});
+  // --- Event Listeners ---
+
+  // Event delegation for article clicks on the grid
+  articleGrid.addEventListener('click', (event) => {
+    const card = event.target.closest('.article-card');
+    if (card && card.dataset.id) {
+      // Ensure ID is a number before passing
+      const articleId = parseInt(card.dataset.id, 10);
+      if (!isNaN(articleId)) {
+        showArticleModal(articleId);
+      }
+    }
+  });
+  // Allow opening modal with Enter key for accessibility
+  articleGrid.addEventListener('keydown', (event) => {
+    const card = event.target.closest('.article-card');
+    if (event.key === 'Enter' && card && card.dataset.id) {
+      const articleId = parseInt(card.dataset.id, 10);
+      if (!isNaN(articleId)) {
+        showArticleModal(articleId);
+      }
+    }
+  });
+
+
+  // Modal close listeners
+  closeModalBtn.addEventListener('click', closeModal);
+  // Close if clicking outside the modal content
+  modal.addEventListener('click', (e) => {
+    // Check if the click is directly on the modal overlay, not its children
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+  // Close with Escape key
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
+      closeModal();
+    }
+  });
+
+
+  // ================== INITIAL LOAD & INTERVALS ==================
+  updatePrices(); // Initial price load
+  loadArticles(); // Initial article load
+
+  // Refresh prices periodically (e.g., every 30 seconds)
+  // Note: Articles are loaded once; implement refresh logic if needed
+  setInterval(updatePrices, 30000); // 30 seconds interval for price updates
+
+}); // End DOMContentLoaded
