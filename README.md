@@ -13,6 +13,8 @@ The Crypto AI News Processor is an application designed to monitor Telegram chan
 
 This application automates the process of news extraction and summarization from specified Telegram channels. It leverages AI models through OpenRouter to transform messages into structured articles, caches this data along with cryptocurrency prices using Redis, and presents it through a user-facing webpage and a set of RESTful APIs.
 
+**For a complete walkthrough, from initial software installation to configuration, local setup, and deployment guidance, please refer to our detailed [GETTING_STARTED.md](GETTING_STARTED.md) guide.**
+
 ---
 
 ## ✨ Features
@@ -44,11 +46,53 @@ graph TD
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start (For Developers)
 
-For comprehensive instructions on prerequisites, setup, configuration, and deployment, please see the **[GETTING_STARTED.md](GETTING_STARTED.md)** guide.
+This section assumes you have Node.js (>=18.x), npm, Git, and a Redis instance already set up.
 
-*(For experienced developers, a "Quick Start" section might be added here in the future.)*
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository_url>
+    cd <repository_folder_name>
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configure Environment:**
+    * Copy `.env.example` to `.env`:
+        ```bash
+        cp .env.example .env
+        ```
+    * Edit `.env` and fill in the **required variables**:
+        * `TELEGRAM_API_ID`
+        * `TELEGRAM_API_HASH`
+        * `OPENROUTER_API_KEYS`
+        * `REDIS_URL`
+        * `TELEGRAM_CHANNEL`
+        * `SITE_URL` (e.g., `http://localhost:3000`)
+
+4.  **Generate Telegram Session String:**
+    * Ensure `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` are set in `.env`.
+    * Run:
+        ```bash
+        npm run generate-session
+        ```
+    * Follow prompts and paste the output `TELEGRAM_SESSION_STRING` into your `.env` file.
+
+5.  **Start the application:**
+    ```bash
+    npm start
+    ```
+    Or for development with auto-restart:
+    ```bash
+    npm run dev
+    ```
+    The application will be available at your `SITE_URL` (default: `http://localhost:3000`).
+
+*(For more detailed instructions, especially if you are new to these technologies, please see the [GETTING_STARTED.md](GETTING_STARTED.md) guide.)*
 
 ---
 
