@@ -24,9 +24,15 @@ Before we dive into the setup, you need to have a few tools and accounts ready. 
             * *To open Terminal/Command Prompt:*
                 * **Windows:** Press the Windows key, type `cmd` (for Command Prompt) or `powershell`, and press Enter.
                 * **macOS:** Press Command + Spacebar to open Spotlight search, type `Terminal`, and press Enter.
-        2.  In the window that appears, type exactly: `node -v`
+        2.  In the window that appears, type exactly:
+            ```bash
+            node -v
+            ```
         3.  Press Enter. If Node.js is installed correctly, you'll see a version number like `v18.19.0`.
-        4.  Next, type: `npm -v`
+        4.  Next, type:
+            ```bash
+            npm -v
+            ```
         5.  Press Enter. You should see another version number.
 
 * **Git: The Code Manager**
@@ -38,7 +44,10 @@ Before we dive into the setup, you need to have a few tools and accounts ready. 
         3.  Run the installer. For most users, the default settings during installation are suitable.
     * **How to check if it's installed:**
         1.  Open your Terminal or Command Prompt.
-        2.  Type: `git --version`
+        2.  Type:
+            ```bash
+            git --version
+            ```
         3.  Press Enter. If Git is installed, you'll see a version number like `git version 2.40.0`.
     * **(Alternative if you don't want to install Git):** Most GitHub project pages have a green "Code" button. Clicking this usually gives an option to "Download ZIP". You can download the code this way and then unzip the file to a folder on your computer. However, using Git is recommended for easier updates.
 

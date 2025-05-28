@@ -49,8 +49,8 @@ Response: An array of article objects.
 
 [
   {
-    "id": 12345, // Original Telegram Message ID
-    "apiId": 1001, // Unique, Sequential API ID
+    "id": 12345,
+    "apiId": 1001,
     "headline": "Example Headline from AI",
     "article": "Generated article content from AI...",
     "source": "[https://original-source.url/](https://original-source.url/)",
@@ -65,7 +65,20 @@ Description: Retrieves a single article by its unique apiId.
 
 URL Parameter: :apiId (number) - The sequential API ID of the article.
 
-Success Response (200 OK): { "success": true, "data": ArticleObject }
+Success Response (200 OK):
+
+{
+  "success": true,
+  "data": {
+    "id": 12345,
+    "apiId": 1001,
+    "headline": "Example Headline from AI",
+    "article": "Generated article content from AI...",
+    "source": "[https://original-source.url/](https://original-source.url/)",
+    "date": "2025-05-28T10:00:00.000Z",
+    "status": "processed"
+  }
+}
 
 Error Responses:
 
