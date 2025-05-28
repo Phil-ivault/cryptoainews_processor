@@ -46,7 +46,7 @@ graph TD
 
 ---
 
-## 🚀 Quick Start (For Developers)
+## 🚀 Quick Start
 
 This section assumes you have Node.js (>=18.x), npm, Git, and a Redis instance already set up.
 
