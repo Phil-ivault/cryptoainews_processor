@@ -1,17 +1,23 @@
+/* ================== VARIABLES & DEFAULTS ================== */
 :root {
     --primary-color: #2962ff;
-    /* Example Blue */
+    /* A vibrant blue */
     --secondary-color: #f4f7f9;
-    /* Light background */
+    /* Light grey background */
     --text-color: #333;
+    /* Dark grey for text */
     --muted-color: #666;
+    /* Lighter grey for less important text */
     --border-color: #e0e0e0;
+    /* Light border */
     --spacing-unit: 1rem;
+    /* Base unit for padding/margins */
     --max-width: 1200px;
-    --header-height: 60px;
-    /* Approximate height for main margin */
+    /* Max width for content */
+    --header-height: 70px;
+    /* Increased header height */
     --price-bar-height: 30px;
-    /* Approximate height for main margin */
+    /* Price ticker height */
 }
 
 * {
@@ -30,30 +36,33 @@ body {
     line-height: 1.6;
     background-color: var(--secondary-color);
     color: var(--text-color);
+    /* Add padding to prevent content from hiding under the fixed header */
     padding-top: calc(var(--header-height) + var(--price-bar-height) + 1rem);
-    /* Space for fixed header */
 }
 
-/* ================== HEADER ================== */
+/* ================== HEADER & PRICE TICKER ================== */
 .header {
     position: fixed;
+    /* Stick header to the top */
     top: 0;
     left: 0;
     width: 100%;
     background: white;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     z-index: 1000;
-    padding: 0 var(--spacing-unit);
-    /* Padding handled by inner container */
+    /* Ensure header stays on top */
+    border-bottom: 1px solid var(--border-color);
+    /* Separator */
 }
 
 .header-content {
     display: flex;
     flex-direction: column;
+    /* Stack logo and price bar */
     max-width: var(--max-width);
     margin: 0 auto;
-    padding: 0.75rem 0;
-    /* Vertical padding */
+    padding: 0.5rem var(--spacing-unit);
+    /* Padding */
 }
 
 .logo {
@@ -61,30 +70,34 @@ body {
     font-size: 1.5rem;
     color: var(--primary-color);
     margin-bottom: 0.5rem;
-    /* Space below logo */
+    text-align: center;
+    /* Center logo on small screens */
 }
 
 .price-container {
     width: 100%;
     overflow-x: auto;
+    /* Allow horizontal scrolling */
     scrollbar-width: thin;
-    /* Firefox */
+    /* Firefox scrollbar */
     scrollbar-color: var(--primary-color) #eee;
-    /* Firefox */
+    /* Firefox scrollbar colors */
     -ms-overflow-style: none;
-    /* IE/Edge */
+    /* Hide scrollbar in IE/Edge */
     cursor: grab;
     /* Indicate draggable */
-    border-top: 1px solid var(--border-color);
     padding-top: 0.5rem;
+    border-top: 1px solid #eee;
 }
 
 .price-container:active {
     cursor: grabbing;
+    /* Cursor when dragging */
 }
 
 .price-container::-webkit-scrollbar {
     height: 4px;
+    /* Webkit scrollbar height */
 }
 
 .price-container::-webkit-scrollbar-track {
@@ -98,51 +111,39 @@ body {
 
 .price-scroller {
     display: inline-flex;
+    /* Keep price items in a row */
     gap: 1.5rem;
-    /* Adjusted gap */
     padding: 0.25rem 0;
     font-size: 0.85rem;
-    /* Slightly smaller */
     font-family: 'Menlo', 'Consolas', 'Courier New', monospace;
-    /* Monospace fonts */
     white-space: nowrap;
-    /* Ensure items stay inline */
+    /* Prevent wrapping */
 }
 
 .price-item {
-    /* display: inline-flex; */
-    /* Redundant due to parent flex */
-    align-items: center;
-    gap: 0.5rem;
     color: var(--text-color);
-}
-
-.price-item span {
-    /* If you add spans inside later */
-    color: var(--muted-color);
 }
 
 .price-loading,
 .price-error {
     color: var(--muted-color);
     font-style: italic;
-    padding: 0.5rem 0;
 }
 
 .price-error {
     color: #dc3545;
-    font-weight: 500;
+    /* Red for errors */
 }
 
-/* ================== MAIN CONTENT ================== */
+/* ================== ARTICLE GRID ================== */
 .grid-container {
     display: grid;
+    /* Use CSS Grid for layout */
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    /* Slightly larger min width */
+    /* Responsive columns */
     gap: var(--spacing-unit);
     max-width: var(--max-width);
     margin: 0 auto 2rem;
-    /* Removed top margin, handled by body padding */
     padding: 0 var(--spacing-unit);
 }
 
@@ -155,16 +156,16 @@ body {
     cursor: pointer;
     transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
     display: flex;
-    /* Use flexbox for layout */
     flex-direction: column;
-    /* Stack elements vertically */
     justify-content: space-between;
-    /* Push meta to bottom */
-    min-height: 180px;
-    /* Ensure minimum card height */
+    /* Ensures meta stays low */
+    min-height: 200px;
+    /* Consistent card height */
 }
 
-.article-card:hover {
+.article-card:hover,
+.article-card:focus-within {
+    /* Add focus state for accessibility */
     transform: translateY(-4px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
@@ -175,101 +176,73 @@ body {
 
 .article-header h3 {
     font-size: 1.2rem;
-    /* Slightly adjusted */
     font-weight: 600;
-    /* Semi-bold */
     line-height: 1.4;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     color: var(--text-color);
-    /* Limit headline lines if needed */
+    /* Clamp headline to 3 lines */
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-clamp: 3;
+    /* <<< ADDED STANDARD PROPERTY */
     min-height: calc(1.2rem * 1.4 * 3);
-    /* Reserve space for 3 lines */
+    /* Reserve space */
 }
 
 .article-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     font-size: 0.8rem;
-    /* Smaller meta text */
     color: var(--muted-color);
-    gap: 1rem;
+    padding-top: 0.75rem;
     margin-top: auto;
-    /* Push to bottom if content is short */
-    padding-top: 0.5rem;
-    /* Space above meta */
+    /* Pushes to bottom */
     border-top: 1px solid var(--border-color);
-    /* Separator */
-}
-
-.view-icon {
-    vertical-align: -2px;
-    /* Align icon better with text */
-    margin-right: 0.3rem;
-    width: 1em;
-    /* Use em for scaling */
-    height: 1em;
-}
-
-.views,
-.date {
-    /* Apply common styling */
-    display: inline-flex;
-    align-items: center;
-}
-
-.date {
-    white-space: nowrap;
+    text-align: right;
+    /* Align date to the right */
 }
 
 .preview {
+    /* Clamp preview text to 3 lines */
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-clamp: 3;
+    /* <<< ADDED STANDARD PROPERTY */
     color: #555;
-    /* Slightly darker preview text */
     margin-bottom: 1rem;
-    /* Space between preview and meta */
     font-size: 0.95rem;
+    flex-grow: 1;
+    /* Allows preview to take available space */
 }
 
-/* ================== MODAL ================== */
+/* ================== MODAL DIALOG ================== */
 .modal {
     display: none;
     /* Hidden by default */
     position: fixed;
     inset: 0;
-    /* Covers entire viewport */
     background: rgba(0, 0, 0, 0.6);
-    /* Darker overlay */
+    /* Semi-transparent overlay */
     z-index: 2000;
     overflow-y: auto;
-    /* Allow scrolling for tall content */
+    /* Allow scrolling */
     padding: 1rem;
-    /* Padding around modal content */
 }
 
 .modal[aria-hidden="false"] {
     display: block;
-    /* Show when not hidden */
+    /* Show when active */
 }
 
 .modal-content {
     position: relative;
     background: white;
     max-width: 750px;
-    /* Slightly adjusted max-width */
     width: 100%;
-    /* Responsive width */
     margin: 2rem auto;
-    /* Center vertically (approx) and horizontally */
+    /* Centering */
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
@@ -277,37 +250,31 @@ body {
 
 .modal-title {
     font-size: 1.6rem;
-    /* Larger title */
     margin-bottom: 1.5rem;
     line-height: 1.3;
-    padding-right: 40px;
+    padding-right: 45px;
     /* Space for close button */
     font-weight: 600;
 }
 
 .modal-body-container {
     max-height: 60vh;
-    /* Limit height and allow scrolling */
+    /* Limit body height */
     overflow-y: auto;
     margin-bottom: 1.5rem;
     padding-right: 0.5rem;
-    /* Space for scrollbar */
 }
 
 .modal-body {
     white-space: pre-line;
-    /* Preserve line breaks from content */
+    /* Preserve line breaks */
     overflow-wrap: break-word;
-    /* Wrap long words */
     line-height: 1.7;
-    /* Increased line height for readability */
-    color: var(--text-color);
     font-size: 1rem;
 }
 
 .modal-link {
     display: inline-block;
-    /* Correct display */
     font-weight: 500;
     color: var(--primary-color);
     text-decoration: none;
@@ -325,23 +292,17 @@ body {
 
 .close-btn {
     position: absolute;
-    /* Position relative to modal-content */
     top: 1rem;
-    /* Distance from top */
     right: 1rem;
-    /* Distance from right */
     background: transparent;
     border: none;
     font-size: 2rem;
-    /* Larger close icon */
     line-height: 1;
     color: var(--muted-color);
     cursor: pointer;
     padding: 0.5rem;
-    /* Easier to click */
     border-radius: 50%;
     width: 44px;
-    /* Explicit size */
     height: 44px;
     display: flex;
     align-items: center;
@@ -349,17 +310,21 @@ body {
     transition: background-color 0.2s, color 0.2s;
 }
 
-.close-btn:hover {
+.close-btn:hover,
+.close-btn:focus {
+    /* Add focus style */
     background-color: rgba(0, 0, 0, 0.05);
     color: var(--text-color);
+    outline: none;
+    /* Remove default outline, handle focus visually */
 }
 
-/* ================== UTILITY ================== */
+/* ================== UTILITY & RESPONSIVE ================== */
 .loading,
 .empty,
 .error {
     grid-column: 1 / -1;
-    /* Span full grid width */
+    /* Span all columns */
     text-align: center;
     padding: 3rem var(--spacing-unit);
     color: var(--muted-color);
@@ -371,19 +336,22 @@ body {
     font-weight: 500;
 }
 
-
-/* ================== MOBILE ================== */
 @media (max-width: 768px) {
+
+    /* Adjustments for smaller screens */
+    :root {
+        --header-height: 60px;
+        /* Slightly reduce header height */
+    }
+
     body {
         padding-top: calc(var(--header-height) + var(--price-bar-height) + 0.5rem);
     }
 
-    .header-content {
-        padding: 0.5rem 0;
-    }
-
     .logo {
         font-size: 1.25rem;
+        text-align: left;
+        /* Align left on mobile */
     }
 
     .price-scroller {
@@ -393,63 +361,36 @@ body {
 
     .grid-container {
         grid-template-columns: 1fr;
-        /* Single column */
-        gap: 0.75rem;
+        /* Single column layout */
         padding: 0 0.75rem;
-        /* Reduced padding */
     }
 
     .article-card {
         padding: 1rem;
-        min-height: 160px;
+        min-height: 180px;
     }
 
     .article-header h3 {
         font-size: 1.1rem;
         -webkit-line-clamp: 2;
+        /* Show 2 lines */
         line-clamp: 2;
+        /* <<< ADDED STANDARD PROPERTY */
         min-height: calc(1.1rem * 1.4 * 2);
     }
 
-    .article-meta {
-        font-size: 0.75rem;
-    }
-
     .preview {
-        font-size: 0.9rem;
         -webkit-line-clamp: 2;
+        /* Show 2 lines */
         line-clamp: 2;
-    }
-
-
-    .modal {
-        padding: 0.5rem;
+        /* <<< ADDED STANDARD PROPERTY */
     }
 
     .modal-content {
-        width: 100%;
-        /* Full width */
-        margin: 0.5rem auto;
         padding: 1.5rem 1rem 1rem;
-        /* Adjusted padding */
     }
 
     .modal-title {
-        font-size: 1.25rem;
-        margin-bottom: 1rem;
-    }
-
-    .modal-body-container {
-        max-height: 70vh;
-    }
-
-    /* Allow more height on mobile */
-
-    .close-btn {
-        top: 0.5rem;
-        right: 0.5rem;
-        width: 36px;
-        height: 36px;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
     }
 }

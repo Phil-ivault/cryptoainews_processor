@@ -3,34 +3,45 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { securityMiddleware } from './utils/security.js';
-// No direct imports needed from telegramService or openai for API routes
 import { redisClient } from './utils/redis.js';
 
-// Configure paths
+// --- Path Configuration ---
+// Setup __filename and __dirname for ES modules.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const publicDir = path.join(__dirname, 'src', 'public'); // Assuming index.html is in src/public
+// Define the path to the public directory for serving static files (frontend).
+const publicDir = path.join(__dirname, 'src', 'public');
 
+// --- Express App Initialization ---
 const app = express();
 
-// Middleware
+// --- Core Middleware ---
+// Parse incoming JSON requests.
 app.use(express.json());
-app.use(cors()); // Ensure CORS origin is correctly set via SITE_URL env var in security.js
-app.use(securityMiddleware); // Apply security middleware array (CORS, Helmet, Rate Limiters)
-app.use(express.static(publicDir)); // Serve static files from public directory
+// Apply the security middleware array (CORS, Helmet, Rate Limiters).
+// CORS origin is configured within security.js based on SITE_URL.
+app.use(securityMiddleware);
+// Serve static files (HTML, CSS, JS) from the public directory.
+app.use(express.static(publicDir));
 
-// Trust proxy headers if behind a load balancer/proxy (e.g., on Render)
-app.set('trust proxy', process.env.PROXY_TRUST_LEVEL || 1);
+// --- Proxy Configuration ---
+// Trust proxy headers if running behind a load balancer or proxy (e.g., on Render).
+// The level (1) indicates trusting the first hop. Configurable via PROXY_TRUST_LEVEL.
+app.set('trust proxy', parseInt(process.env.PROXY_TRUST_LEVEL) || 1);
 
-// Routes
-// Serve the main HTML file (optional, depends on your frontend setup)
+// --- Routes ---
+
+/**
+ * Root Route (GET /)
+ * Serves the main index.html file for the frontend.
+ * Includes basic error handling for file not found or read issues.
+ */
 app.get('/', (req, res) => {
-  // Check if index.html exists? For now, assume it does.
   res.sendFile(path.join(publicDir, 'index.html'), (err) => {
     if (err) {
-      // Handle error if file doesn't exist or other read issues
+      console.error("Error serving index.html:", err);
       if (err.code === 'ENOENT') {
-        res.status(404).send("Resource not found.");
+        res.status(404).send("Frontend resource not found.");
       } else {
         res.status(500).send("Server error serving static file.");
       }
@@ -38,25 +49,33 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Endpoints
+// --- API Endpoints ---
+
+/**
+ * GET /api/cached-prices
+ * Retrieves the latest cached cryptocurrency prices from Redis.
+ * It fetches prices for symbols defined in the CRYPTO_SYMBOLS env var.
+ * Returns a JSON object mapping symbols to prices (or null if unavailable).
+ */
 app.get('/api/cached-prices', async (req, res) => {
   try {
-    // Ensure CRYPTO_SYMBOLS are defined and parsed correctly
+    // Parse symbols from environment, taking only the symbol part (e.g., BTC from BTC:bitcoin).
     const symbols = process.env.CRYPTO_SYMBOLS?.split(',').map(p => p.split(':')[0].trim()).filter(Boolean) || [];
     if (symbols.length === 0) {
-      console.warn("No CRYPTO_SYMBOLS defined in environment for /api/cached-prices");
-      return res.json({}); // Return empty object if no symbols defined
+      console.warn("API: No CRYPTO_SYMBOLS defined for /api/cached-prices");
+      return res.json({}); // Return empty if no symbols.
     }
 
+    // Get latest prices from Redis.
     const pricesJson = await redisClient.get('latestPrices');
     const prices = pricesJson ? JSON.parse(pricesJson) : [];
 
-    // Create a map for faster lookup
+    // Create a Map for efficient price lookup.
     const priceMap = new Map(prices.map(p => [p.symbol, p.price]));
 
-    // Build the response object based on requested symbols
+    // Build the response object with prices for requested symbols.
     const priceData = symbols.reduce((acc, symbol) => {
-      acc[symbol] = priceMap.get(symbol) || null; // Use map for efficient lookup
+      acc[symbol] = priceMap.get(symbol) || null;
       return acc;
     }, {});
 
@@ -67,40 +86,46 @@ app.get('/api/cached-prices', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/cached-articles
+ * Retrieves all currently cached articles from Redis.
+ * Returns a JSON array of article objects.
+ */
 app.get('/api/cached-articles', async (req, res) => {
   try {
     const articlesJson = await redisClient.get('articles');
     const articles = articlesJson ? JSON.parse(articlesJson) : [];
-    res.json(articles); // Send the array directly
+    res.json(articles);
   } catch (error) {
     console.error('API Error fetching cached articles:', error);
     res.status(500).json({ error: 'Failed to fetch cached articles' });
   }
 });
 
+/**
+ * GET /api/articles/:apiId
+ * Retrieves a single article by its unique, sequential API ID (number).
+ * This ID is generated during processing and is stable.
+ * Returns a JSON object with success status and article data, or an error.
+ */
 app.get('/api/articles/:apiId', async (req, res) => {
-  // API ID is expected to be a string (or number if using INCR)
-  const requestedApiId = req.params.apiId; // Get param as string
-
-  // Convert to number ONLY if your apiId is numeric (it is, from INCR)
+  const requestedApiId = req.params.apiId;
+  // Ensure the provided ID is a valid number.
   const apiIdAsNumber = parseInt(requestedApiId, 10);
   if (isNaN(apiIdAsNumber)) {
     return res.status(400).json({ success: false, error: 'Invalid API ID format - must be a number' });
   }
 
-
   try {
     const articlesJson = await redisClient.get('articles');
     const articles = articlesJson ? JSON.parse(articlesJson) : [];
 
-    // Find article using the 'apiId' field and comparing numbers
-    const article = articles.find(a => a.apiId === apiIdAsNumber); // Compare numbers
+    // Find the article with the matching 'apiId'.
+    const article = articles.find(a => a.apiId === apiIdAsNumber);
 
     if (article) {
-      // Return only the found article object
       res.json({ success: true, data: article });
     } else {
-      // Article with the specified apiId not found
       res.status(404).json({ success: false, error: 'Article not found for the given API ID' });
     }
   } catch (error) {
@@ -112,6 +137,6 @@ app.get('/api/articles/:apiId', async (req, res) => {
   }
 });
 
-// Export the configured Express app instance
-// This allows server.js (or tests) to import and use it
+// --- Export App ---
+// Export the configured Express app instance for use by server.js.
 export default app;
